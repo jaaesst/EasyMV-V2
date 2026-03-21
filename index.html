@@ -52,10 +52,55 @@ header{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:7px 12px;b
 #bgImage{position:absolute;width:100%;height:100%;object-fit:contain;transform-origin:center center;cursor:grab;user-select:none;-webkit-user-select:none;z-index:1;}
 #bgImage.dragging{cursor:grabbing;}
 #bgVideo.dragging{cursor:grabbing;}
-.bg-placeholder{position:absolute;inset:0;background:linear-gradient(135deg,#0d0d1a,#1a0d2e 50%,#0d1a2e);display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;}
-.vignette-overlay{position:absolute;inset:0;pointer-events:none;z-index:1;}
-.bottom-grad{position:absolute;bottom:0;left:0;right:0;pointer-events:none;z-index:1;height:55%;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%);}
-.lyrics-overlay{position:absolute;left:0;right:0;z-index:10;padding:0 12px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:ns-resize;user-select:none;-webkit-user-select:none;touch-action:none;pointer-events:auto;}
+/* ลบเฉพาะส่วนที่ไฮไลท์ออก */
+.bg-placeholder {
+  position: absolute;
+  inset: 0;
+  /* background: var(...) <--- ลบบรรทัดนี้ออก */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.vignette-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2; /* เพิ่มอันนี้ */
+}
+
+.bottom-grad {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 2; /* เพิ่มอันนี้ */
+  height: 55%;
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 100%);
+}
+
+/* บรรทัดที่ 67 ในไฟล์ของคุณ */
+.lyrics-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 100; /* ปรับจาก 10 เป็น 100 เพื่อให้อยู่บนสุด */
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: ns-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  pointer-events: auto;
+}
 .lyrics-overlay::before{content:'⠿';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.25);pointer-events:none;}
 .text-band{position:absolute;left:0;right:0;z-index:1;pointer-events:none;display:none;}
 .lyric-line{text-align:center;transition:all .35s cubic-bezier(.16,1,.3,1);line-height:1.5;max-width:94%;visibility:visible;display:block;}
@@ -246,7 +291,7 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
           <div class="lyric-line current" id="currentLine">♪ Upload Files to Begin</div>
           <div class="lyric-line next"    id="nextLine"></div>
           <div class="lyric-line next2"   id="nextLine2"></div>
-          <div class="lyric-line waiting" id="waitingLine"></div>
+<!--          <div class="lyric-line waiting" id="waitingLine"></div> -->
         </div>
       </div>
     </div>
@@ -292,21 +337,24 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
         <button class="btn purple" id="exportBtn" onclick="openModal('exportModal')" disabled>↓ Export</button>
         <button class="btn" onclick="openModal('styleModal')">🎨 Style</button>
         
-        <!-- ✨ Background Tools -->
-        <button class="btn success" onclick="openBgColorPicker()" title="Choose background color" style="font-size:9px;">🎨 BG Color</button>
-        <button class="btn success" onclick="openFrameCapture()" title="Capture frame from video" style="font-size:9px;">📸 BG Frame</button>
+        <!-- ✨ Text Mode, Shake, Float -->
+        <select id="textMode" onchange="S.textMode=this.value;applyStyle();updateStyleDemo();" style="font-family:'Space Mono',monospace;font-size:9px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 7px;cursor:pointer;">
+          <option value="std">STD TEXT</option>
+          <option value="free">FREE FLOAT</option>
+        </select>
+        
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;font-size:9px;">
+          <input type="checkbox" id="shakeEnable" onchange="S.shakeEnabled = this.checked" style="accent-color: var(--accent);">
+          📳 Shake
+        </label>
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;font-size:9px;">
+          <input type="checkbox" id="floatEnable" onchange="S.floatEnabled = this.checked" style="accent-color: var(--accent);">
+          🎈 Float
+        </label>
       </div>
       
       <div class="ctrl-mini-row" id="vizRow">
         <label>🎵 EFFECT VIZ</label>
-        <label style="margin-left: 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          <input type="checkbox" id="shakeEnable" onchange="S.shakeEnabled = this.checked" style="accent-color: var(--accent);">
-          📳 Shake
-        </label>
-        <label style="margin-left: 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          <input type="checkbox" id="floatEnable" onchange="S.floatEnabled = this.checked" style="accent-color: var(--accent);">
-          🎈 Float
-        </label>
       </div>
 
       <div class="exp-prog-wrap" id="expProgWrap">
@@ -346,6 +394,20 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
           <option value="none">None</option>
         </select>
       </div>
+      
+      <!-- ✅ เพิ่มสีพื้นหลัง Background Color -->
+      <div class="ctrl-mini-row">
+        <label>BG Color</label>
+        <div class="color-swatch"><input type="color" id="bgColorPicker" value="#0a0a0f" oninput="applyBgColor(this.value)"></div>
+        <div class="cpre" style="background:#0a0a0f" onclick="applyBgColor('#0a0a0f')" title="Dark"></div>
+        <div class="cpre" style="background:#1a1a2e" onclick="applyBgColor('#1a1a2e')" title="Dark Blue"></div>
+        <div class="cpre" style="background:#0d0d1a" onclick="applyBgColor('#0d0d1a')" title="Deep Black"></div>
+        <div class="cpre" style="background:#1a0d2e" onclick="applyBgColor('#1a0d2e')" title="Purple Dark"></div>
+        <div class="cpre" style="background:#0000ff" onclick="applyBgColor('#0000ff')" title="Blue"></div> 
+        <div class="cpre" style="background:#000" onclick="applyBgColor('#000000')" title="Black"></div>
+      </div>
+      
+            
       <div class="ctrl-mini-row" id="vizRow">
         <label>🎵 VIZ</label>
         <select class="mini-select" id="vizSel">
@@ -407,13 +469,6 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
       <div style="position:absolute;bottom:5px;right:7px;font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);pointer-events:none;">drag image</div>
     </div>
     <div class="style-grid">
-      <div class="style-field">
-        <label>TEXT MODE</label>
-        <select id="textMode" onchange="S.textMode=this.value;applyStyle();updateStyleDemo();">
-          <option value="std">STD TEXT (↕ Vertical)</option>
-          <option value="free">FREE FLOAT (↕↔ Any)</option>
-        </select>
-      </div>
       <div class="style-field">
         <label>FONT</label>
         <select id="fontSelect" onchange="applyStyle()">
@@ -491,58 +546,6 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
   </div>
 </div>
 
-<!-- 📸 Frame Capture Modal -->
-<div class="modal-overlay" id="frameCapModal">
-  <div class="modal-box">
-    <div class="modal-title">📸 Capture Frame from Video</div>
-    
-    <div style="margin-bottom:12px;">
-      <label style="font-size:9px;color:var(--text-dim);font-family:'Space Mono',monospace;display:block;margin-bottom:6px;">TIME (seconds)</label>
-      <input type="range" id="capTimeSlider" min="0" max="100" value="30" style="width:100%;cursor:pointer;accent-color:var(--accent);">
-      <div style="font-size:9px;color:var(--text-dim);margin-top:4px;">
-        Time: <span id="capTimeDisplay">0:00</span>
-      </div>
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:9px;color:var(--text-dim);font-family:'Space Mono',monospace;display:block;margin-bottom:6px;">PREVIEW + BLUR</label>
-      <canvas id="frameCapCanvas" style="width:100%;height:140px;border:1px solid var(--border);border-radius:6px;background:#000;display:block;"></canvas>
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:9px;color:var(--text-dim);font-family:'Space Mono',monospace;display:block;margin-bottom:6px;">BLUR AMOUNT</label>
-      <input type="range" id="capBlurSlider" min="0" max="50" value="15" style="width:100%;cursor:pointer;accent-color:var(--accent);">
-      <span id="capBlurValue" style="font-size:9px;color:var(--accent);float:right;">15px</span>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn primary" onclick="applyCaptureBg()">✓ Use This Frame</button>
-      <button class="btn" onclick="closeModal('frameCapModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- 🎨 Color Picker Modal -->
-<div class="modal-overlay" id="colorPickerModal">
-  <div class="modal-box">
-    <div class="modal-title">🎨 Choose Background Color</div>
-    
-    <div style="margin-bottom:12px;">
-      <label style="font-size:9px;color:var(--text-dim);font-family:'Space Mono',monospace;display:block;margin-bottom:6px;">RGB COLOR</label>
-      <input type="color" id="bgColorInput" value="#1a1a2e" style="width:100%;height:80px;border:1px solid var(--border);border-radius:6px;cursor:pointer;">
-    </div>
-
-    <div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:6px;text-align:center;">
-      <div id="colorPreview" style="width:100%;height:80px;border-radius:4px;border:1px solid var(--border);"></div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn primary" onclick="applyColorBg()">✓ Use Color</button>
-      <button class="btn" onclick="closeModal('colorPickerModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
 <script>
 const audio=document.getElementById('audioEl');
 let lyricsData=[], isPlaying=false, audioFile=null;
@@ -617,6 +620,7 @@ let S={
   vizTheme:'purple-orange',
   vizC1:'#7c6af5',
   vizC2:'#ff9100',
+  bgColor:'#0a0a0f', // ✅ เพิ่มสีพื้นหลัง
 
   shakeEnabled: false ,
   floatEnabled: false,
@@ -627,14 +631,11 @@ let S={
 // ── Init ──
 (function init(){
   lyricsData=[];
+  applyBgColor(S.bgColor); // เพิ่มบรรทัดนี้เพื่อให้ค่าเริ่มต้นทำงาน
   renderTable(); applyDim(); applyFontColor(S.fontColor);
   setupImgDrag();
   setupOverlayDrag();
   initStylePreview(); // Initialize preview canvas
-  
-  // ✨ Set default elegant dark background (not pure black)
-  setDefaultBackground();
-  
   setTimeout(applyRatio, 150);
   window.addEventListener('resize',()=>{applyRatio();if(spCtx)updateRatioPreview();});
   window.addEventListener('orientationchange',()=>setTimeout(applyRatio,350));
@@ -774,6 +775,11 @@ function loadProject(event){
         document.getElementById('lyrBg').value=S.lyrBg;
         document.getElementById('ratioSel').value=S.ratio;
         document.getElementById('textMode').value=S.textMode||'std';
+        // ✅ เพิ่มการโหลด bgColor
+        if(S.bgColor){
+          document.getElementById('bgColorPicker').value=S.bgColor;
+          applyBgColor(S.bgColor);
+        }
         // Restore overlay position
         const ov=document.getElementById('lyricsOverlay');
         if(ov){ov.style.top=S.overlayY+'%';ov.style.transform='translateY(-50%)';}
@@ -1377,7 +1383,11 @@ function syncLyrics(t){
   if(n1El.textContent!==next1)n1El.textContent=next1;
   if(n2El&&n2El.textContent!==next2)n2El.textContent=next2;
   const firstTime=sorted[0]?.time??0,nextTime=sorted[idx+1]?.time,gapToNext=nextTime!==undefined?nextTime-t:999;
-
+  if(wEl){
+    if(idx===-1&&t<firstTime){wEl.textContent=`♪ เริ่มใน ${Math.ceil(firstTime-t)} วิ`;wEl.style.display='';}
+    else if(idx>=0&&gapToNext>3&&gapToNext<30){wEl.textContent=`· · · ${Math.ceil(gapToNext)}s · · ·`;wEl.style.display='';}
+    else{wEl.textContent='';wEl.style.display='none';}
+  }
   document.querySelectorAll('#lyricsBody tr').forEach(tr=>tr.classList.remove('active-row'));
   if(idx>=0){
     const oi=lyricsData.findIndex(r=>r.time===sorted[idx].time&&r.text===sorted[idx].text);
@@ -1418,6 +1428,38 @@ function applyFontColor(color){
   applyShadow(S.shadow);
   updateStyleDemo();
 }
+
+// ✅ เพิ่ม applyBgColor function
+// ✅ ค้นหาฟังก์ชัน applyBgColor แล้วแทนที่ด้วยโค้ดนี้
+function applyBgColor(color) {
+  // 1. เก็บค่าลงใน Object Settings
+  S.bgColor = color; 
+  
+  // 2. อัปเดตตัวเลือกสี (Color Picker) ให้ตรงกัน
+  const picker = document.getElementById('bgColorPicker');
+  if (picker) picker.value = color; 
+
+  // 3. เปลี่ยนสีพื้นหลังของ Preview (id="mvPreview")
+  const preview = document.getElementById('mvPreview');
+  if (preview) {
+    preview.style.backgroundColor = color;
+    preview.style.backgroundImage = 'none'; // ล้าง gradient เก่าออก
+  }
+
+  // 4. เปลี่ยนสีของ Placeholder (id="bgPlaceholder")
+  const placeholder = document.getElementById('bgPlaceholder');
+  if (placeholder) {
+    // ใช้ inline style เพื่อความชัวร์ (ไม่ต้องง้อ CSS Variable)
+    placeholder.style.background = color;
+  }
+  
+  // 5. อัปเดตหน้าต่าง Style Modal (ถ้ามี)
+  if (typeof updateStyleDemo === 'function') updateStyleDemo(); 
+}
+
+
+
+
 function applyShadow(mode){
   S.shadow=mode;
   const cEl=document.getElementById('currentLine'),col=S.fontColor;
@@ -1864,12 +1906,6 @@ async function startRecord(){
     bgSourceElement = bgImgElement;
     console.log('✅ Using image as background');
   }
-  // Fallback: use bgBlur for images too if needed
-  else if (bgBlurElement && bgBlurElement.src && bgBlurElement.style.display !== 'none') {
-    bgSourceElement = bgBlurElement;
-    useBlurAsSource = true;
-    console.log('✅ Using fallback blur element');
-  }
   
   if (bgSourceElement) {
     window.blurredBgCanvas = document.createElement('canvas');
@@ -2106,7 +2142,8 @@ function startVizLoop(){
   if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
   if(!vizCanvas){
     vizCanvas=document.createElement('canvas');
-    vizCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+// แก้ z-index เป็น 0 เพื่อให้อยู่ใต้เงา (Vignette/BottomGrad)
+    vizCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;';
     document.getElementById('mvPreview').appendChild(vizCanvas);
   }
   function loop(){
@@ -2125,7 +2162,7 @@ function startVizLoop(){
       // Check hasNoBg each frame (user may load image after starting)
       const bgImg=document.getElementById('bgImage');
       const hasNoBg=!bgIsVideo&&(!bgImg.src||bgImg.style.display==='none'||!bgImg.naturalWidth);
-      if(hasNoBg){c.fillStyle='#070710';c.fillRect(0,0,vizCanvas.width,vizCanvas.height);}
+      if(hasNoBg){c.fillStyle=S.bgColor;c.fillRect(0,0,vizCanvas.width,vizCanvas.height);}
       drawViz(c,0,0,vizCanvas.width,vizCanvas.height, previewBarPeaks);
     }
 
@@ -2153,50 +2190,57 @@ function drawLoop(){
   animFrameId=requestAnimationFrame(drawLoop);
 }
 
-// 1. เพิ่มฟังก์ชันช่วยตัดคำ (วางไว้นอก drawFrame หรือที่ไหนก็ได้ใน <script>)
+// ช่วยตัดคำ
 function wrapText(context, text, maxWidth) {
     if (!text) return [];
-    const words = text.split(' ');
+    
+    // 1. แยกกลุ่มคำเบื้องต้นด้วยช่องว่างก่อน
+    const parts = text.split(' ');
     let lines = [];
     let currentLine = '';
 
-    for (let i = 0; i < words.length; i++) {
-        let word = words[i];
+    for (let i = 0; i < parts.length; i++) {
+        let part = parts[i];
         
-        // ถ้าคำเดียวยาวเกิน maxWidth (เช่น ภาษาไทยยาวๆ ที่ไม่มีช่องว่าง)
-        if (context.measureText(word).width > maxWidth) {
-            // ค่อยๆ แยกตัวอักษรใส่เข้าไป
-            for (let char of word) {
-                if (context.measureText(currentLine + char).width < maxWidth) {
-                    currentLine += char;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = char;
-                }
-            }
+        // ตรวจสอบว่า "ส่วนนี้" (รวมช่องว่างถ้ามี) ใส่ลงในบรรทัดปัจจุบันได้ไหม
+        let testLineWithSpace = currentLine + (currentLine ? " " : "") + part;
+        
+        if (context.measureText(testLineWithSpace).width <= maxWidth) {
+            currentLine = testLineWithSpace;
         } else {
-            // กรณีปกติที่มีช่องว่าง
-            let testLine = currentLine + (currentLine ? " " : "") + word;
-            if (context.measureText(testLine).width < maxWidth) {
-                currentLine = testLine;
+            // 2. ถ้าใส่ไม่ได้ และเป็นคำยาวๆ (เช่น ภาษาไทยที่ไม่มีช่องว่าง) 
+            // ให้ค่อยๆ ไหลตัวอักษรลงมา
+            if (context.measureText(part).width > maxWidth) {
+                // แยกตัวอักษร
+                for (let char of part) {
+                    let testCharLine = currentLine + char;
+                    if (context.measureText(testCharLine).width <= maxWidth) {
+                        currentLine = testCharLine;
+                    } else {
+                        if (currentLine) lines.push(currentLine);
+                        currentLine = char;
+                    }
+                }
             } else {
-                lines.push(currentLine);
-                currentLine = word;
+                // 3. ถ้าคำนี้เดี่ยวๆ ไม่เกิน maxWidth แต่ใส่บรรทัดเดิมไม่ได้ ให้ขึ้นบรรทัดใหม่เลย
+                if (currentLine) lines.push(currentLine);
+                currentLine = part;
             }
         }
     }
+    
     if (currentLine) lines.push(currentLine);
-    return lines;
+    
+    // 4. Clean up: ลบช่องว่างส่วนเกินหน้า/หลังบรรทัด
+    return lines.map(l => l.trim());
 }
 
 
-// 2. ฟังก์ชัน drawFrame แบบเต็มที่ปรับปรุงแล้ว
 function drawFrame(t) {
     if (!offCanvas || !ctx) return;
     const cw = offCanvas.width, ch = offCanvas.height;
     const sorted = [...lyricsData].filter(r => r.time !== null).sort((a, b) => a.time - b.time);
-    
-    ctx.clearRect(0, 0, cw, ch);
+    ctx.clearRect(0, 0, cw, ch); // ล้างเฟรมเก่า
 
     const bgImg = document.getElementById('bgImage');
     const bgVid = document.getElementById('bgVideo');
@@ -2207,26 +2251,35 @@ function drawFrame(t) {
     const previewH = S.previewH || 200;
     const scale = (ch / previewH);
 
-    // Shake Effect 
+    // --- คำนวณตำแหน่งพื้นฐาน ---
+    const floatY = S.floatEnabled ? (Math.sin(t * 2.2) * (ch * 0.015)) : 0; 
+    const baseY = (ch * S.overlayY / 100) + floatY;
+
+    let baseX = cw / 2; 
+    if (S.textMode === 'free') {
+        baseX += (S.textOffX || 0) * scale;
+    }
+
+    // --- ความกว้างกรอบเนื้อเพลง ---
+    let maxW = (S.textMode === 'free') ? Math.min(Math.min(baseX, cw - baseX) * 1.8, cw * 0.45) : cw * 0.75;
+
+    // Shake Effect
     let shakeX = 0;
     if (S.shakeEnabled && typeof vizFreqSmooth !== 'undefined' && vizFreqSmooth) {
         const bassPower = (vizFreqSmooth[0] + vizFreqSmooth[1] + vizFreqSmooth[2]) / 3;
-        if ((bassPower / 255) > 0.85) shakeX = (Math.random() - 0.5) * (cw * 0.015); 
+        if ((bassPower / 255) > 0.88) shakeX = (Math.random() - 0.5) * (cw * 0.01); 
     }
 
-    // --- 1. วาด Layer พื้นหลังสุด (Blurred Background) ---
+    // --- 1. วาดพื้นหลัง (BG Color / Blur) ---
+    // ชั้นล่างสุด เผื่อวิดีโอโหลดไม่ทันหรือมีขอบดำ
     if (window.blurredBgCanvas) {
-        ctx.save();
-        // ส่วนนี้ทำให้มืดลงตามค่า bgDim เพื่อให้ตัววิดีโอหลักดูเด่นขึ้น
-        ctx.globalAlpha = Math.min(1, S.bgDim + 0.2); 
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, cw, ch); // ถมดำบางๆ ก่อน
-        ctx.globalAlpha = 0.6; // ให้พื้นหลังเบลอจางลงหน่อย
         ctx.drawImage(window.blurredBgCanvas, 0, 0, cw, ch);
-        ctx.restore();
+    } else {
+        ctx.fillStyle = S.bgColor || '#0a0a0f'; 
+        ctx.fillRect(0, 0, cw, ch);
     }
-
-    // --- 2. วาด Layer วิดีโอหลัก (Main Background) ---
+    
+    // --- 2. วาด Main Background (Image/Video) แบบเต็มความสว่าง ---
     if (bgSrc && srcW > 0) {
         const ir = srcW / srcH, cr = cw / ch;
         let sw, sh;
@@ -2236,42 +2289,41 @@ function drawFrame(t) {
         const imgStartY = (ch - sh) / 2 + (S.imgOffY * scale);
         
         ctx.save();
-        // ✅ แก้ไข: วิดีโอหลักต้องชัด 100% ไม่จางลงตาม bgDim (เหมือนในแอป)
-        ctx.globalAlpha = 1.0; 
+        // ✨ แก้ไข: วาดแบบ 100% ไม่ใช้ globalAlpha แล้ว
         ctx.drawImage(bgSrc, imgStartX + shakeX, imgStartY, sw, sh);
         ctx.restore();
     }
 
-    // --- 3. วาด Vignette & Bottom Gradient (เงาดำที่ขอบเพื่อให้เนื้อเพลงอ่านง่าย) ---
-    // ชั้นนี้จะทำหน้าที่สร้าง "ความมืด" แทนการไปลดความใสของวิดีโอ
-    ctx.save();
-    const vGrad = ctx.createRadialGradient(cw/2, ch/2, cw*0.2, cw/2, ch/2, cw*0.8);
-    vGrad.addColorStop(0, "transparent");
-    vGrad.addColorStop(1, `rgba(0,0,0,${S.bgDim})`); // ใช้ bgDim มาทำเงาขอบแทน
-    ctx.fillStyle = vGrad;
-    ctx.fillRect(0, 0, cw, ch);
+    // --- 3. [NEW] วาด Vignette Effect (Radial Gradient) ทับวิดีโอ ---
+    // สร้างวงกลมมืดๆ จากกลางจอออกไปหาขอบจอ
+    const vignetteGrad = ctx.createRadialGradient(
+        cw / 2, ch / 2, 0, // จุดศูนย์กลาง
+        cw / 2, ch / 2, cw * 0.8 // รัศมีวงนอก (ปรับ 0.8 เพื่อให้ขอบมืดพอดี)
+    );
+    // กลางจอโปร่งใส -> ขอบจอมืดลงตามค่า Dark (S.bgDim)
+    vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    vignetteGrad.addColorStop(1, `rgba(0,0,0,${S.bgDim})`); 
 
-    const bGrad = ctx.createLinearGradient(0, ch * 0.4, 0, ch);
-    bGrad.addColorStop(0, "transparent");
-    bGrad.addColorStop(1, `rgba(0,0,0,${S.bottomDim})`);
-    ctx.fillStyle = bGrad;
-    ctx.fillRect(0, 0, cw, ch);
-    ctx.restore();
+    ctx.fillStyle = vignetteGrad;
+    ctx.fillRect(0, 0, cw, ch); // วาดทับทั้งเฟรม
 
-    // --- 4. วาด Visualizer ---
+    // --- 4. วาด Shadow Grad (Linear Gradient) ทับอีกชั้นที่ด้านล่าง ---
+    const bottomShadowGrad = ctx.createLinearGradient(0, ch * 0.4, 0, ch); // เริ่มมืดที่ความสูง 40%
+    bottomShadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    // มืดสุดที่ด้านล่างตามค่า Shadow (S.bottomDim)
+    bottomShadowGrad.addColorStop(1, `rgba(0,0,0,${S.bottomDim})`); 
+
+    ctx.fillStyle = bottomShadowGrad; 
+    ctx.fillRect(0, 0, cw, ch); // วาดทับทั้งเฟรม
+
+    // --- 5. วาด Visualizer ---
     if (S.vizStyle !== 'none') {
-        ctx.save();
-        ctx.translate(shakeX, 0);
+        ctx.save(); ctx.translate(shakeX, 0);
         drawViz(ctx, 0, 0, cw, ch, typeof exportBarPeaks !== 'undefined' ? exportBarPeaks : new Float32Array(54));
         ctx.restore();
     }
 
-    // --- 5. วาดเนื้อเพลง (เหมือนเดิม) ---
-    const floatY = S.floatEnabled ? (Math.sin(t * 2.2) * (ch * 0.012)) : 0; 
-    const baseY = (ch * S.overlayY / 100) + floatY;
-    let baseX = cw / 2; 
-    if (S.textMode === 'free') baseX += (S.textOffX || 0) * scale;
-
+    // --- 6. จัดการเนื้อเพลงและการนับถอยหลัง ---
     let idx = -1;
     for (let i = 0; i < sorted.length; i++) { if (sorted[i].time <= t) idx = i; else break; }
     
@@ -2281,37 +2333,38 @@ function drawFrame(t) {
 
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const mainPx = Math.round(calcMainPx(previewH) * scale);
-    let maxW = (S.textMode === 'free') ? Math.min(Math.min(baseX, cw - baseX) * 1.8, cw * 0.5) : cw * 0.9;
 
+ 
+
+    // --- ฟังก์ชันวาดเนื้อเพลงตัดบรรทัด ---
     const drawTextLineWrapped = (text, fontWeight, fontSize, color, y, isCurrent = false) => {
         if(!text) return 0;
         ctx.font = `${fontWeight} ${fontSize}px ${S.font}`;
         ctx.fillStyle = color;
+        
         const lines = wrapText(ctx, text, maxW);
-        const lineHeight = fontSize * 1.35;
+        const lineHeight = fontSize * 1.3;
         const totalH = lines.length * lineHeight;
+        
         let currentY = y - (totalH / 2) + (lineHeight / 2);
 
         lines.forEach(line => {
-            ctx.save();
             if (isCurrent) {
                 const r = parseInt(S.fontColor.slice(1, 3), 16), g = parseInt(S.fontColor.slice(3, 5), 16), b = parseInt(S.fontColor.slice(5, 7), 16);
-                if (S.shadow === 'dark') { ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 10 * scale; ctx.shadowOffsetY = 3 * scale; }
-                else if (S.shadow === 'glow') { ctx.shadowColor = `rgba(${r},${g},${b},0.8)`; ctx.shadowBlur = 25 * scale; }
+                if (S.shadow === 'dark') { ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 8 * scale; ctx.shadowOffsetY = 2 * scale; }
+                else if (S.shadow === 'glow') { ctx.shadowColor = `rgba(${r},${g},${b},0.8)`; ctx.shadowBlur = 20 * scale; }
             }
             ctx.fillText(line, baseX + shakeX, currentY);
-            ctx.restore();
+            ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
             currentY += lineHeight;
         });
-        return totalH;
+        return totalH; 
     };
 
     const currentH = drawTextLineWrapped(curr, S.fontWeight, mainPx, S.fontColor, baseY, true);
-    if (prev) drawTextLineWrapped(prev, '400', Math.round(mainPx * 0.65), 'rgba(255,255,255,0.3)', baseY - (currentH/2) - (mainPx*0.8));
-    if (next) drawTextLineWrapped(next, '600', Math.round(mainPx * 0.75), 'rgba(255,255,255,0.45)', baseY + (currentH/2) + (mainPx*0.8));
+    if (prev) drawTextLineWrapped(prev, '400', Math.round(mainPx * 0.65), 'rgba(255,255,255,0.3)', baseY - (currentH / 2) - (mainPx * 0.9));
+    if (next) drawTextLineWrapped(next, '600', Math.round(mainPx * 0.75), 'rgba(255,255,255,0.45)', baseY + (currentH / 2) + (mainPx * 0.9));
 }
-
-
 
 function downloadVideo(){
   if(!recordedChunks.length){alert('No video yet — press ⏺ Record first');return;}
@@ -2425,223 +2478,6 @@ async function toggleWakeLock() {
     btn.classList.remove('success');
   }
 }
-
-// ═══════════════════════════════════════════════════════════════
-// 🎨 BACKGROUND TOOLS - Color & Frame Capture
-// ═══════════════════════════════════════════════════════════════
-
-let videoElementForCapture = null;
-
-// ✨ Set elegant dark gradient as default background
-function setDefaultBackground() {
-  const bgCanvas = document.createElement('canvas');
-  bgCanvas.width = 1080;
-  bgCanvas.height = 1920;
-  const ctx = bgCanvas.getContext('2d');
-  
-  // สร้าง gradient มี depth
-  const gradient = ctx.createLinearGradient(0, 0, 0, bgCanvas.height);
-  gradient.addColorStop(0, '#1a1a2e');    // ด้านบน
-  gradient.addColorStop(0.5, '#0f0f1e');  // กลาง
-  gradient.addColorStop(1, '#0a0a14');    // ด้านล่าง
-  
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-  
-  // เพิ่ม subtle noise
-  const imageData = ctx.getImageData(0, 0, bgCanvas.width, bgCanvas.height);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const noise = Math.random() * 8 - 4;
-    data[i] += noise;
-    data[i + 1] += noise;
-    data[i + 2] += noise;
-  }
-  ctx.putImageData(imageData, 0, 0);
-  
-  // Display as default
-  const bgImage = document.getElementById('bgImage');
-  bgImage.src = bgCanvas.toDataURL();
-  bgImage.style.display = 'block';
-  document.getElementById('bgPlaceholder').style.display = 'none';
-  
-  console.log('✅ Default background applied');
-}
-
-function openBgColorPicker() {
-  const colorPicker = document.getElementById('bgColorInput');
-  const preview = document.getElementById('colorPreview');
-  
-  colorPicker.oninput = () => {
-    preview.style.background = colorPicker.value;
-  };
-  preview.style.background = colorPicker.value;
-  
-  openModal('colorPickerModal');
-}
-
-function applyColorBg() {
-  const color = document.getElementById('bgColorInput').value;
-  
-  // ✨ สร้าง blur background canvas ด้วยสี (ไม่กระทบ bgImage/bgVideo)
-  const blurCanvas = document.createElement('canvas');
-  blurCanvas.width = 1080;
-  blurCanvas.height = 1920;
-  const ctx = blurCanvas.getContext('2d');
-  
-  // เติมสี
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, blurCanvas.width, blurCanvas.height);
-  
-  // เก็บไว้ใน bgBlur element เพื่อให้ record canvas ใช้
-  const bgBlur = document.getElementById('bgBlur');
-  bgBlur.src = blurCanvas.toDataURL();
-  bgBlur.style.display = 'block';
-  
-  // ✨ เก็บไว้ใน window.blurredBgCanvas ด้วย เพื่อให้ preview ใช้
-  window.blurredBgCanvas = blurCanvas;
-  window.blurredBgCanvasReady = true;
-  
-  console.log('✅ Color BG applied to blur layer:', color);
-  closeModal('colorPickerModal');
-}
-
-function openFrameCapture() {
-  // ตรวจสอบว่ามี bgVideo หรือ bgImage พร้อมใช้
-  const bgVid = document.getElementById('bgVideo');
-  const bgImg = document.getElementById('bgImage');
-  
-  if (!bgVid.src && !bgImg.src) {
-    alert('Please upload a video or image first');
-    return;
-  }
-  
-  // ถ้าเป็น video ให้ใช้มัน
-  if (bgVid.src && bgVid.src !== '') {
-    videoElementForCapture = bgVid;
-    document.getElementById('capTimeSlider').max = bgVid.duration || 100;
-  }
-  
-  openModal('frameCapModal');
-  
-  // Setup sliders
-  document.getElementById('capTimeSlider').oninput = updateCapPreview;
-  document.getElementById('capBlurSlider').oninput = updateCapPreview;
-  
-  updateCapPreview();
-}
-
-function updateCapPreview() {
-  if (!videoElementForCapture) return;
-  
-  const timeSlider = document.getElementById('capTimeSlider');
-  const blurSlider = document.getElementById('capBlurSlider');
-  const time = parseFloat(timeSlider.value);
-  const blur = parseInt(blurSlider.value);
-  
-  // Update displays
-  const mins = Math.floor(time / 60);
-  const secs = Math.floor(time % 60);
-  document.getElementById('capTimeDisplay').textContent = `${mins}:${String(secs).padStart(2, '0')}`;
-  document.getElementById('capBlurValue').textContent = blur + 'px';
-  
-  // Draw preview
-  const canvas = document.getElementById('frameCapCanvas');
-  const ctx = canvas.getContext('2d');
-  
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-  
-  videoElementForCapture.currentTime = time;
-  
-  setTimeout(() => {
-    try {
-      ctx.drawImage(videoElementForCapture, 0, 0, canvas.width, canvas.height);
-      
-      // Apply blur
-      if (blur > 0) {
-        ctx.filter = `blur(${blur}px)`;
-        ctx.drawImage(videoElementForCapture, 0, 0, canvas.width, canvas.height);
-        ctx.filter = 'none';
-      }
-    } catch (e) {
-      console.log('Frame loading...');
-    }
-  }, 50);
-}
-
-function applyCaptureBg() {
-  if (!videoElementForCapture) return;
-  
-  const time = parseFloat(document.getElementById('capTimeSlider').value);
-  const blur = parseInt(document.getElementById('capBlurSlider').value);
-  
-  // ✨ สร้าง blur background canvas (ไม่กระทบ bgVideo)
-  const bgCanvas = document.createElement('canvas');
-  bgCanvas.width = 1080;
-  bgCanvas.height = 1920;
-  const ctx = bgCanvas.getContext('2d');
-  
-  videoElementForCapture.currentTime = time;
-  
-  setTimeout(() => {
-    try {
-      ctx.drawImage(videoElementForCapture, 0, 0, bgCanvas.width, bgCanvas.height);
-      
-      // Apply blur
-      if (blur > 0) {
-        ctx.filter = `blur(${blur}px)`;
-        ctx.drawImage(videoElementForCapture, 0, 0, bgCanvas.width, bgCanvas.height);
-        ctx.filter = 'none';
-      }
-      
-      // ✨ เก็บไป bgBlur element เพื่อ record ใช้
-      const bgBlur = document.getElementById('bgBlur');
-      bgBlur.src = bgCanvas.toDataURL();
-      bgBlur.style.display = 'block';
-      
-      // ✨ เก็บไว้ใน window.blurredBgCanvas สำหรับ preview ใช้
-      window.blurredBgCanvas = bgCanvas;
-      window.blurredBgCanvasReady = true;
-      
-      console.log('✅ Frame captured as blur BG:', time + 's, blur: ' + blur + 'px');
-      closeModal('frameCapModal');
-    } catch (e) {
-      console.error('Error capturing frame:', e);
-      alert('Error capturing frame. Try again.');
-    }
-  }, 100);
-}
-
-function clearCustomBg() {
-  // ✨ เคลียร์ blur background เท่านั้น (ไม่กระทบ bgVideo)
-  const bgBlur = document.getElementById('bgBlur');
-  bgBlur.src = '';
-  bgBlur.style.display = 'none';
-  
-  window.blurredBgCanvas = null;
-  window.blurredBgCanvasReady = false;
-  
-  console.log('✅ Blur background cleared');
-}
-
-// Helper functions
-function openModal(id) {
-  const modal = document.getElementById(id);
-  if (modal) modal.style.display = 'flex';
-}
-
-function closeModal(id) {
-  const modal = document.getElementById(id);
-  if (modal) modal.style.display = 'none';
-}
-
-// Close modal on overlay click
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => {
-    if (e.target === m) closeModal(m.id);
-  });
-});
 
 </script>
 </body>
