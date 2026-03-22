@@ -1396,12 +1396,12 @@ function drawViz(c, x0, y0, w, h, peaks){
     
     // ชื่อเพลง
     c.font = `900 ${Math.round(10 * scale)}px "Noto Sans Thai", sans-serif`;
-    c.fillStyle = '#FFFFFF';
+    c.fillStyle = c1;
     c.fillText(sTitle, paddingLeft, titleY);
     
     // ชื่อศิลปิน
     c.font = `500 ${Math.round(7 * scale)}px "Noto Sans Thai", sans-serif`;
-    c.fillStyle = 'rgba(163, 136, 105, 0.9)'; 
+    c.fillStyle = c2 ; 
     c.fillText(sArtist, paddingLeft, artistY);
 
     // 5. Progress Bar
