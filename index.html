@@ -272,6 +272,16 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
 .mode-btn.selected{border-color:var(--accent2);background:rgba(124,106,245,.15);color:#fff;}
 .mode-btn .mode-icon{font-size:16px;display:block;margin-bottom:3px;}
 .mode-btn .mode-sub{font-size:8px;opacity:.6;letter-spacing:1px;}
+
+/* ค้นหา #mvPreview ใน <style> แล้วเพิ่มบรรทัดนี้ */
+#mvPreview {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  flex-shrink: 0;
+  touch-action: none; /* ✅ ปิดการ Scroll ของเบราว์เซอร์เพื่อความลื่นในการลาก */
+}
+
 </style>
 </head>
 <body>
@@ -654,6 +664,8 @@ let S={
   bgColor:'#0a0a0f', // ✅ เพิ่มสีพื้นหลัง
   playerOffX: 0,   // ระยะเลื่อนในแนวนอนของ UI
   playerOffY: 0,   // ระยะเลื่อนในแนวตั้งของ UI
+  vizOffX: 0,
+  vizOffY: 0,
 
   shakeEnabled: false ,
   floatEnabled: false,
@@ -1084,8 +1096,13 @@ function drawViz(c, x0, y0, w, h, peaks){
 
   const vw = designVW * scale;
   const vh = designVH * scale;
-  const vx = x0 + (w - vw) / 2;
-  const vy = y0 + (h - vh) / 2;
+
+  const isPlayerUI = S.vizStyle === 'playerui';
+  const activeOffX = isPlayerUI ? S.playerOffX : S.vizOffX;
+  const activeOffY = isPlayerUI ? S.playerOffY : S.vizOffY;
+
+  const vx = x0 + (w - vw) / 2 + (activeOffX * scale);
+  const vy = y0 + (h - vh) / 2 + (activeOffY * scale);
   const baselineY = vy + vh * 0.85;
 
   if(S.vizStyle==='wave'){
@@ -1416,11 +1433,9 @@ function drawViz(c, x0, y0, w, h, peaks){
     const uiW = vw * 0.86; 
     const uiH = Math.min(vh * 0.52, uiW * 0.3); 
     
-    // ✅ แก้ไข: เพิ่มค่า Offset เข้าไปในพิกัด X และ Y
-    const uiX = (vx + (vw - uiW) / 2) + (S.playerOffX * scale);
-    const centerY_Base = vy + (vh / 2) + (20 * scale); 
-    const uiY = (centerY_Base - (uiH / 2)) + (S.playerOffY * scale);
-
+    const uiX = vx + (vw - uiW) / 2;
+    const centerY_Base = vy + (vh / 2) + (20 * scale);
+    const uiY = centerY_Base - (uiH / 2);
 
     // 3. วาดพื้นหลัง
     // 2. วาดพื้นหลัง Glassmorphism (แก้ไขเพื่อป้องกันความซีดใน Preview)
@@ -2739,50 +2754,88 @@ async function toggleWakeLock() {
 function setupPlayerUIDrag() {
   const preview = document.getElementById('mvPreview');
   let dragging = false;
-  let startX, startY, startOffX, startOffY;
+  let startX = 0, startY = 0, startOffX = 0, startOffY = 0;
+  let dragTarget = null;
+  let dragScale = 1; 
 
   function onDown(e) {
-    if (S.vizStyle !== 'playerui') return;
-    
+    if (S.vizStyle === 'none') return;
+
     const pt = e.touches ? e.touches[0] : e;
     const rect = preview.getBoundingClientRect();
     const mouseX = pt.clientX - rect.left;
     const mouseY = pt.clientY - rect.top;
+    
+    // 1. ดึงค่า Design Size (1920x1080 ฯลฯ) เพื่อหา Scale ให้ตรงกับ drawViz
+    const { baseW, baseH } = getOutputSizeByRatio();
+    dragScale = Math.min(preview.offsetWidth / baseW, preview.offsetHeight / baseH);
 
-    const scale = (preview.offsetHeight / (S.previewH || 200));
-    const vw = preview.offsetWidth * 0.85; 
-    const vh = vw * 0.3;
-    const uiW = vw * 0.86;
-    const uiH = Math.min(vh * 0.52, uiW * 0.3);
-    const uiX = (preview.offsetWidth - uiW) / 2 + (S.playerOffX * scale);
-    const uiY = (preview.offsetHeight / 2 + (20 * scale) - (uiH / 2)) + (S.playerOffY * scale);
+    // 2. คำนวณขนาดกึ่งกลาง (vw, vh) แบบเดียวกับที่ใช้วาดจริง
+    const designVW = Math.min(baseW * 0.85, 1000);
+    const designVH = designVW * 0.3;
+    const vw = designVW * dragScale;
+    const vh = designVH * dragScale;
 
-    // 🎯 ถ้าจิ้มโดนกล่อง UI
-    if (mouseX >= uiX && mouseX <= uiX + uiW && mouseY >= uiY && mouseY <= uiY + uiH) {
+    // 3. หาตำแหน่ง (vx, vy) โดยใช้ dragScale ที่ถูกต้อง
+    const offX = (S.vizStyle === 'playerui') ? S.playerOffX : (S.vizOffX || 0);
+    const offY = (S.vizStyle === 'playerui') ? S.playerOffY : (S.vizOffY || 0);
+    const vx = (preview.offsetWidth - vw) / 2 + (offX * dragScale);
+    const vy = (preview.offsetHeight - vh) / 2 + (offY * dragScale);
+
+    if (S.vizStyle === 'playerui') {
+      const uiW = vw * 0.86;
+      const uiH = Math.min(vh * 0.52, uiW * 0.3);
+      const uiX = vx + (vw - uiW) / 2;
+      const centerY = vy + (vh / 2) + (20 * dragScale);
+      const uiY = centerY - (uiH / 2);
+
+      // ✅ เช็ค Hitbox ของ Player UI (จะตรงกับภาพวาดเป๊ะ)
+      if (mouseX >= uiX && mouseX <= uiX + uiW && mouseY >= uiY && mouseY <= uiY + uiH) {
+        dragTarget = 'playerui';
+      }
+    } else {
+      // ✅ เช็ค Hitbox ของ VIZ อื่นๆ
+      if (mouseX >= vx && mouseX <= vx + vw && mouseY >= vy && mouseY <= vy + vh) {
+        dragTarget = 'viz';
+      }
+    }
+
+    if (dragTarget) {
       dragging = true;
-      startX = pt.clientX; startY = pt.clientY;
-      startOffX = S.playerOffX; startOffY = S.playerOffY;
+      startX = pt.clientX;
+      startY = pt.clientY;
+      startOffX = (dragTarget === 'playerui') ? S.playerOffX : (S.vizOffX || 0);
+      startOffY = (dragTarget === 'playerui') ? S.playerOffY : (S.vizOffY || 0);
       
-      // ✅ ตัดสัญญาณทันที! ไม่ให้ไหลไปถึงฟังก์ชันลากรูป (setupImgDrag)
-      e.stopImmediatePropagation(); 
-      if(e.cancelable) e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.cancelable) e.preventDefault();
     }
   }
 
   function onMove(e) {
     if (!dragging) return;
     const pt = e.touches ? e.touches[0] : e;
-    const scale = (preview.offsetHeight / (S.previewH || 200));
-    S.playerOffX = startOffX + (pt.clientX - startX) / scale;
-    S.playerOffY = startOffY + (pt.clientY - startY) / scale;
-    if(e.cancelable) e.preventDefault();
+    
+    // 4. ใช้ dragScale ตัวเดียวกับตอนคลิกลงไป เพื่อให้ความเร็วลากเท่ากับนิ้ว (ลื่นขึ้น 100%)
+    const dx = (pt.clientX - startX) / dragScale;
+    const dy = (pt.clientY - startY) / dragScale;
+
+    if (dragTarget === 'playerui') {
+      S.playerOffX = startOffX + dx;
+      S.playerOffY = startOffY + dy;
+    } else {
+      S.vizOffX = startOffX + dx;
+      S.vizOffY = startOffY + dy;
+    }
+
+    if (e.cancelable) e.preventDefault();
   }
 
-  function onUp() { dragging = false; }
+  function onUp() { dragging = false; dragTarget = null; }
 
   preview.addEventListener('mousedown', onDown);
   preview.addEventListener('touchstart', onDown, { passive: false });
-  window.addEventListener('mousemove', onMove, { passive: false });
+  window.addEventListener('mousemove', onMove);
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('mouseup', onUp);
   window.addEventListener('touchend', onUp);
