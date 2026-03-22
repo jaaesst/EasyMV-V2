@@ -423,19 +423,12 @@ tr.selected-row.active-row td{background:rgba(200,169,110,.16);}
       <div class="ctrl-mini-row">
         <label>BG Color</label>
         <div class="color-swatch"><input type="color" id="bgColorPicker" value="#0a0a0f" oninput="applyBgColor(this.value)"></div>
-        <div class="cpre" style="background:#0a0a0f" onclick="applyBgColor('#0a0a0f')" title="Dark"></div>
         <div class="cpre" style="background:#1a1a2e" onclick="applyBgColor('#1a1a2e')" title="Dark Blue"></div>
         <div class="cpre" style="background:#0d0d1a" onclick="applyBgColor('#0d0d1a')" title="Deep Black"></div>
         <div class="cpre" style="background:#1a0d2e" onclick="applyBgColor('#1a0d2e')" title="Purple Dark"></div>
-        <div class="cpre" style="background:#0000ff" onclick="applyBgColor('#0000ff')" title="Blue"></div> 
-        <div class="cpre" style="background:#000" onclick="applyBgColor('#000000')" title="Black"></div>
-      </div>
+        <label style="margin-right: 0;">★ชื่อเพลง/ศิลปินสำหรับ Music Player UI★ 
+        </label>   
       
-      <div class="ctrl-mini-row">
-          <div class="ctrl-mini-row2" id="vizRow2" style="display: flex; justify-content: flex-end; width: 100%;">
-        <label style="margin-right: 0;">★ ชื่อเพลง/ชื่อศิลปินสำหรับ Music Player UI ★</label>
-      </div>
-
       <div class="ctrl-mini-row" id="vizRow">
         <label>🎵 VIZ</label>
         <select class="mini-select" id="vizSel">
@@ -659,6 +652,8 @@ let S={
   vizC1:'#7c6af5',
   vizC2:'#ff9100',
   bgColor:'#0a0a0f', // ✅ เพิ่มสีพื้นหลัง
+  playerOffX: 0,   // ระยะเลื่อนในแนวนอนของ UI
+  playerOffY: 0,   // ระยะเลื่อนในแนวตั้งของ UI
 
   shakeEnabled: false ,
   floatEnabled: false,
@@ -669,15 +664,20 @@ let S={
 // ── Init ──
 (function init(){
   lyricsData=[];
-  applyBgColor(S.bgColor); // เพิ่มบรรทัดนี้เพื่อให้ค่าเริ่มต้นทำงาน
+  applyBgColor(S.bgColor);
   renderTable(); applyDim(); applyFontColor(S.fontColor);
-  setupImgDrag()
-  setupOverlayDrag();
-  initStylePreview(); // Initialize preview canvas
+  
+  // ✅ เรียงลำดับจาก เลเยอร์บน ไป เลเยอร์ล่าง
+  setupOverlayDrag();    // 1. เนื้อเพลง (บนสุด)
+  setupPlayerUIDrag();   // 2. Player UI (กลาง)
+  setupImgDrag();        // 3. รูปพื้นหลัง (ล่างสุด)
+  
+  initStylePreview();
   setTimeout(applyRatio, 150);
   window.addEventListener('resize',()=>{applyRatio();if(spCtx)updateRatioPreview();});
   window.addEventListener('orientationchange',()=>setTimeout(applyRatio,350));
 })();
+
 
 // ── TABLE ──
 function renderTable(){
@@ -801,30 +801,52 @@ function loadProject(event){
       const p=JSON.parse(e.target.result);
       if(p.lyricsData){lyricsData=p.lyricsData;renderTable();}
       if(p.style){
-        S={...S,...p.style};
-        applyFontColor(S.fontColor);applyShadow(S.shadow);applyStyle();applyRatio();
-        document.getElementById('fontColorPicker').value=S.fontColor;
-        document.getElementById('shadowSel').value=S.shadow;
-        document.getElementById('bgDim').value=S.bgDim;
-        document.getElementById('bottomDim').value=S.bottomDim;
-        document.getElementById('fontSelect').value=S.font;
-        document.getElementById('fontSizeMain').value=S.fontSize;
-        document.getElementById('fontWeight').value=S.fontWeight;
-        document.getElementById('lyrBg').value=S.lyrBg;
-        document.getElementById('ratioSel').value=S.ratio;
-        document.getElementById('textMode').value=S.textMode||'std';
-        // ✅ เพิ่มการโหลด bgColor
-        if(S.bgColor){
-          document.getElementById('bgColorPicker').value=S.bgColor;
-          applyBgColor(S.bgColor);
+        // ✅ 1. ผสานค่า Settings และบังคับให้ค่าตำแหน่งเป็นตัวเลข (Number)
+        S = {...S, ...p.style};
+        if(S.playerOffX !== undefined) S.playerOffX = parseFloat(S.playerOffX) || 0;
+        if(S.playerOffY !== undefined) S.playerOffY = parseFloat(S.playerOffY) || 0;
+        if(S.imgOffX !== undefined) S.imgOffX = parseFloat(S.imgOffX) || 0;
+        if(S.imgOffY !== undefined) S.imgOffY = parseFloat(S.imgOffY) || 0;
+        if(S.textOffX !== undefined) S.textOffX = parseFloat(S.textOffX) || 0;
+
+        // ✅ 2. อัปเดตค่าในเมนูต่างๆ ให้ตรงกับที่โหลดมา
+        const vizSel = document.getElementById('vizSel');
+        if(vizSel) {
+          vizSel.value = S.vizStyle || 'none';
+          
+          // 🔥 บรรทัดสำคัญ: สั่งให้ Dropdown ทำงานเหมือนเราเอานิ้วไปจิ้มเลือกเอง
+          // มันจะไปเรียก startVizLoop() และเช็คเงื่อนไขการลากให้ใหม่ทันที
+          vizSel.dispatchEvent(new Event('change')); 
         }
+        if(document.getElementById('textMode')) 
+           document.getElementById('textMode').value = S.textMode || 'std';
+        if(document.getElementById('songTitle') && p.style.songTitle) 
+           document.getElementById('songTitle').value = p.style.songTitle;
+        if(document.getElementById('songArtist') && p.style.songArtist) 
+           document.getElementById('songArtist').value = p.style.songArtist;
+
+        // ✅ 3. รันฟังก์ชันอัปเดตการแสดงผล
+        applyFontColor(S.fontColor);
+        applyShadow(S.shadow);
+        applyBgColor(S.bgColor || '#0a0a0f');
+        applyRatio(); // applyRatio จะคำนวณ S.previewH ใหม่ให้ถูกต้องกับหน้าจอปัจจุบัน
+        applyStyle(); 
+        
         // Restore overlay position
         const ov=document.getElementById('lyricsOverlay');
-        if(ov){ov.style.top=S.overlayY+'%';ov.style.transform='translateY(-50%)';}
+        if(ov){
+          ov.style.top=S.overlayY+'%';
+          ov.style.transform = S.textMode === 'free' 
+            ? `translate(calc(-50% + ${S.textOffX}px), -50%)` 
+            : 'translateY(-50%)';
+        }
         updateTextBand();
       }
       alert('✓ Project loaded successfully');
-    }catch{alert('Invalid file');}
+    }catch(err){
+      console.error(err);
+      alert('Invalid file or data error');
+    }
   };
   reader.readAsText(file);event.target.value='';
 }
@@ -1390,14 +1412,15 @@ function drawViz(c, x0, y0, w, h, peaks){
     const sArtist = document.getElementById('songArtist')?.value || "Unknown Artist";
 
     // 2. ปรับขนาดกรอบ (คงที่)
+    // 2. ปรับขนาดกรอบ (เพิ่มการใช้ playerOffX/Y)
     const uiW = vw * 0.86; 
     const uiH = Math.min(vh * 0.52, uiW * 0.3); 
-    const uiX = vx + (vw - uiW) / 2;
     
-    // ใช้กึ่งกลางจอเป็นตัวตั้ง แล้วขยับ UI ทั้งชุดขึ้น/ลง
-    // วิธีนี้จะช่วยให้ Text กับ กรอบ ไม่หลุดออกจากกันตอนกด Play
+    // ✅ แก้ไข: เพิ่มค่า Offset เข้าไปในพิกัด X และ Y
+    const uiX = (vx + (vw - uiW) / 2) + (S.playerOffX * scale);
     const centerY_Base = vy + (vh / 2) + (20 * scale); 
-    const uiY = centerY_Base - (uiH / 2);
+    const uiY = (centerY_Base - (uiH / 2)) + (S.playerOffY * scale);
+
 
     // 3. วาดพื้นหลัง
     // 2. วาดพื้นหลัง Glassmorphism (แก้ไขเพื่อป้องกันความซีดใน Preview)
@@ -2354,8 +2377,13 @@ function startVizLoop(){
 // --- แก้ไขในฟังก์ชัน startVizLoop ---
 
 function loop(){
-  if(!isPlaying&&!isRecording){vizAnimId=null;return;}
-
+  // ✅ แก้เป็น: ถ้าไม่ได้เลือก VIZ เลย (none) ถึงค่อยหยุด 
+  // แต่ถ้าเลือกโหมดอะไรไว้ ให้วาดต่อไปเรื่อยๆ เพื่อรองรับการลากตอนเพลงหยุดครับ
+  if(S.vizStyle === 'none'){vizAnimId=null;return;} 
+  
+  if(isPlaying || isRecording) {
+    updateVizSmooth(); // อัปเดตคลื่นเสียงเฉพาะตอนเล่นเพลง
+  }
   updateVizSmooth();
 
   if(S.vizStyle!=='none'){
@@ -2622,36 +2650,33 @@ function fmt(s){if(isNaN(s))return'0:00';return`${Math.floor(s/60)}:${String(Mat
 
 // ── Drag bg image or video ──
 function setupImgDrag(){
-  const img=document.getElementById('bgImage');
-  const vid=document.getElementById('bgVideo');
-  let dragging=false,startX=0,startY=0,startOffX=0,startOffY=0;
+  const preview = document.getElementById('mvPreview'); // เปลี่ยนมาจับที่ตัวแม่
+  const img = document.getElementById('bgImage');
+  const vid = document.getElementById('bgVideo');
+  let dragging=false, startX=0, startY=0, startOffX=0, startOffY=0;
   
   function onDown(e){
-    // ✅ ตรวจสอบ image หรือ video ที่เป็น active
+    // ระบบลำดับความสำคัญ: ถ้า UI ลากอยู่ สัญญาณจะไม่หลุดมาถึงตรงนี้
     const imgActive = img.src && img.style.display !== 'none';
     const vidActive = vid.src && vid.style.display !== 'none';
-    
     if(!imgActive && !vidActive) return;
-    
+
     dragging=true;
     const pt=e.touches?e.touches[0]:e;
-    startX=pt.clientX;startY=pt.clientY;
-    startOffX=S.imgOffX;startOffY=S.imgOffY;
-    if(img.style.display !== 'none') img.classList.add('dragging');
-    if(vid.style.display !== 'none') vid.classList.add('dragging');
-    e.preventDefault();
+    startX=pt.clientX; startY=pt.clientY;
+    startOffX=S.imgOffX; startOffY=S.imgOffY;
+    
+    if(imgActive) img.classList.add('dragging');
+    if(vidActive) vid.classList.add('dragging');
   }
   
   function onMove(e){
-    if(!dragging)return;
+    if(!dragging) return;
     const pt=e.touches?e.touches[0]:e;
-    const dx=pt.clientX-startX,dy=pt.clientY-startY;
-    const preview=document.getElementById('mvPreview');
-    // ✅ ใช้ PIXEL offset ไม่ใช่ %
-    S.imgOffX=startOffX+dx;
-    S.imgOffY=startOffY+dy;
+    S.imgOffX = startOffX + (pt.clientX - startX);
+    S.imgOffY = startOffY + (pt.clientY - startY);
     applyImgTransform();
-    e.preventDefault();
+    if(e.cancelable) e.preventDefault();
   }
   
   function onUp(){
@@ -2660,17 +2685,15 @@ function setupImgDrag(){
     vid.classList.remove('dragging');
   }
   
-  // ✅ Attach event listeners ทั้ง image และ video
-  img.addEventListener('mousedown',onDown);
-  img.addEventListener('touchstart',onDown,{passive:false});
-  vid.addEventListener('mousedown',onDown);
-  vid.addEventListener('touchstart',onDown,{passive:false});
-  
-  document.addEventListener('mousemove',onMove);
-  document.addEventListener('touchmove',onMove,{passive:false});
-  document.addEventListener('mouseup',onUp);
-  document.addEventListener('touchend',onUp);
+  // ✅ เปลี่ยน Listener มาไว้ที่ preview ทั้งหมด
+  preview.addEventListener('mousedown', onDown);
+  preview.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('mousemove', onMove, { passive: false });
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
 }
+
 function applyImgTransform(){
   const img=document.getElementById('bgImage');
   const vid=document.getElementById('bgVideo');
@@ -2712,6 +2735,59 @@ async function toggleWakeLock() {
     btn.classList.remove('success');
   }
 }
+
+function setupPlayerUIDrag() {
+  const preview = document.getElementById('mvPreview');
+  let dragging = false;
+  let startX, startY, startOffX, startOffY;
+
+  function onDown(e) {
+    if (S.vizStyle !== 'playerui') return;
+    
+    const pt = e.touches ? e.touches[0] : e;
+    const rect = preview.getBoundingClientRect();
+    const mouseX = pt.clientX - rect.left;
+    const mouseY = pt.clientY - rect.top;
+
+    const scale = (preview.offsetHeight / (S.previewH || 200));
+    const vw = preview.offsetWidth * 0.85; 
+    const vh = vw * 0.3;
+    const uiW = vw * 0.86;
+    const uiH = Math.min(vh * 0.52, uiW * 0.3);
+    const uiX = (preview.offsetWidth - uiW) / 2 + (S.playerOffX * scale);
+    const uiY = (preview.offsetHeight / 2 + (20 * scale) - (uiH / 2)) + (S.playerOffY * scale);
+
+    // 🎯 ถ้าจิ้มโดนกล่อง UI
+    if (mouseX >= uiX && mouseX <= uiX + uiW && mouseY >= uiY && mouseY <= uiY + uiH) {
+      dragging = true;
+      startX = pt.clientX; startY = pt.clientY;
+      startOffX = S.playerOffX; startOffY = S.playerOffY;
+      
+      // ✅ ตัดสัญญาณทันที! ไม่ให้ไหลไปถึงฟังก์ชันลากรูป (setupImgDrag)
+      e.stopImmediatePropagation(); 
+      if(e.cancelable) e.preventDefault();
+    }
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const scale = (preview.offsetHeight / (S.previewH || 200));
+    S.playerOffX = startOffX + (pt.clientX - startX) / scale;
+    S.playerOffY = startOffY + (pt.clientY - startY) / scale;
+    if(e.cancelable) e.preventDefault();
+  }
+
+  function onUp() { dragging = false; }
+
+  preview.addEventListener('mousedown', onDown);
+  preview.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('mousemove', onMove, { passive: false });
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+}
+
 
 </script>
 </body>
