@@ -819,7 +819,7 @@ function pad(n){return String(n).padStart(2,'0');}
 function dl(content,filename,type){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();}
 
 // ── Collapse controls ──
-let controlsCollapsed=false;
+let controlsCollapsed=true;
 function toggleControls(){
   controlsCollapsed=!controlsCollapsed;
   const c=document.getElementById('playerControls');
