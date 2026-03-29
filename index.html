@@ -875,10 +875,35 @@ function selectRow(i){
   document.getElementById(`row-${i}`)?.classList.add('selected-row');
 }
 function addRow(){
-  lyricsData.push({time:null,text:''});
+  let insertIndex;
+
+  if (selectedRow !== null && selectedRow !== undefined && selectedRow >= 0) {
+    insertIndex = selectedRow + 1;
+  } else {
+    insertIndex = lyricsData.length;
+  }
+
+  lyricsData.splice(insertIndex, 0, { time: null, text: '' });
   renderTable();
-  const i=lyricsData.length-1; selectRow(i);
-  setTimeout(()=>document.getElementById(`row-${i}`)?.scrollIntoView({block:'nearest',behavior:'smooth'}),50);
+
+  selectRow(insertIndex);
+  setTimeout(() => {
+    document.getElementById(`row-${insertIndex}`)?.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth'
+    });
+  }, 50);
+}
+function reindexRows(){
+  const rows = document.querySelectorAll('#lyricsBody tr');
+
+  rows.forEach((tr, i)=>{
+    tr.id = `row-${i}`;
+
+    // ถ้ามี cell # ด้วย
+    const numCell = tr.querySelector('td');
+    if(numCell) numCell.textContent = i+1;
+  });
 }
 function deleteRow(i){lyricsData.splice(i,1);if(selectedRow>=lyricsData.length)selectedRow=Math.max(0,lyricsData.length-1);renderTable();}
 function updateTime(i,v){lyricsData[i].time=v===''||v===null?null:parseFloat(v)||0;}
